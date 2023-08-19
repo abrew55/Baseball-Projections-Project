@@ -1,0 +1,153 @@
+"""
+Created on Sat Jun 24 08:32:56 2023
+
+@author: Austin
+"""
+
+"""
+Tasks:
+    -Figure out how to manage the 4 tables.
+    -Map out how to transfer the finished product into the model.
+"""
+
+import requests
+from bs4 import BeautifulSoup as bs
+import pandas as pd
+
+
+
+#SPLITS
+"""
+req = requests.get('https://baseballsavant.mlb.com/savant-player/paul-goldschmidt-502671?stats=statcast-r-hitting-mlb')
+print(req)
+
+parser = bs(req.content, 'html.parser')
+
+pull = parser.find('div', id='mlb_splits')
+content = pull.find_all('td')
+
+split = [['Team'],['Lg'],['Type'],['PA'],['AB'],['R'],['H'],['2B'],['3B'],['HR'],['RBI'],['BB'],['SO'],['SB'],['CS'],['HBP'],['AVG'],['OBP'],['SLG'],['OPS']]
+i=0
+for stuff in content:
+    if(stuff.text != ' *'):
+        if(i==20):
+            i=0
+        split[i].append(stuff.text)
+        i=i+1
+
+SPLITS = pd.DataFrame(split).T 
+print(SPLITS)
+"""
+
+
+
+#STATCAST
+
+"""
+req = requests.get('https://baseballsavant.mlb.com/savant-player/paul-goldschmidt-502671?stats=statcast-r-hitting-mlb')
+print(req)
+
+parser = bs(req.content, 'html.parser')
+
+pull = parser.find('div', id='statcast_glance_batter')
+content = pull.find_all('td')
+
+
+
+stat = [["Season"],["Age"],["Pitches"],["Batted Balls"],["Barrels"],["Barrel %"],["Barrel/PA"],["Exit Velocity"],["Max EV"],["Launch Angle"],["Sweet Spot %"],["XBA"],["XSLG"],["WOBA"],["XWOBA"],["XWOBACON"],["Hard Hit %"],["K%"], ["BB%"]]
+
+i=0
+for stuff in content:
+    if(stuff.text != ' ' and stuff.text != ' *'):
+        if(i == 19):
+            i=0
+        stat[i].append(stuff.text)
+        if(stuff.text.__contains__("Player")):
+            stat[i+1].append(0)
+            i=i+1
+        if(stuff.text.__contains__("MLB")):
+            stat[i+1].append(0)
+            i=i+1
+            stat[i+1].append(0)
+            i=i+1
+            stat[i+1].append(0)
+            i=i+1
+            stat[i+1].append(0)
+            i=i+1
+        i=i+1
+    
+
+STATCAST = pd.DataFrame(stat).T
+
+i=1
+for x in range(1, len(STATCAST)):
+    temp = STATCAST.loc[i,0]
+    STATCAST.loc[i, 0] = temp.replace("\n","")
+    i=i+1
+
+
+
+print(STATCAST)
+"""
+
+
+
+#STANDARD & ADVANCED
+"""
+req = requests.get('https://baseballsavant.mlb.com/savant-player/paul-goldschmidt-502671?stats=career-r-hitting-mlb')
+print(req)
+
+parser = bs(req.content, 'html.parser')
+
+pull = parser.find('div', class_='table-savant standard-mlb')
+content = pull.find_all('td')
+
+    
+
+#These will become the standard and advanced stats tables.
+mat = [["Season"],["Team"],["League"],["G"],["PA"],["AB"],["R"],["H"],["2B"],["3B"],["HR"],["RBI"],["BB"],["SO"],["SB"],["CS"],["HBP"],["AVG"],["OBP"],["SLG"],["OPS"]]
+mat2 = [["Season"],["Team"],["League"],["PA"],["TB"],["LOB"],["SAC"],["SF"],["BABIP"],["XBH"],["GIDP"],["GIDPO"],["NP"],["P/PA"],["K/PA"],["HR/PA"],["BB/K"],["ISO"],["ROE"],["WO"]]
+
+i=0
+k=0
+for stuff in content:
+    if(stuff.text != ' ' and stuff.text != ' *'): #Filters out the imbedded spaces and asterisks.
+        #Ticker to transition into the second table
+        if(k > 0):
+            k=k+1
+            if(k >= 22):  #This fixes the weird indexing issues I was getting. Might come back and clean up.
+                if(i >= 20): #This and similar ifs will reset the column index when it hits the last one.
+                    i=0
+                mat2[i].append(stuff.text)
+                if(stuff.text.__contains__("Teams")):
+                    mat[i+1].append(0)
+                    i=i+1
+                    k=k+1
+                i=i+1           
+            if(k < 22):
+                if(i == 21):
+                    i=0 
+                mat[i].append(stuff.text)
+                if(stuff.text.__contains__("Teams")):
+                    mat[i+1].append(0)
+                    i=i+1
+                    k=k+1
+                i=i+1
+        #Handles the standard table
+        else:
+            if(i == 21): 
+                i=0
+            mat[i].append(stuff.text)
+            if(stuff.text.__contains__("Teams")):
+                mat[i+1].append(0)
+            i=i+1
+            #Handles the space issue and starts the ticker
+            if(stuff.text.__contains__("Season")):
+                k=k+1
+
+#Convert the 2x2 arrays into a transposed dataframe.            
+STD = pd.DataFrame(data=mat).T
+ADV = pd.DataFrame(data=mat2).T      
+print(STD)
+print(ADV)
+"""
